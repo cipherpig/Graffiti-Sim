@@ -1,0 +1,152 @@
+```import pygame
+import sys
+import random
+import math
+
+pygame.init()
+
+WIDTH, HEIGHT = 1000, 650
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Graffiti Wall")
+
+clock = pygame.time.Clock()
+
+color = (0,255,180)
+brush_size = 14
+drawing = False
+last_pos = None
+
+canvas = pygame.Surface((WIDTH, HEIGHT))
+canvas.fill((60,60,60))
+
+# -----------------------------
+# brick wall
+# -----------------------------
+
+def draw_bricks(surface):
+
+    brick_w = 80
+    brick_h = 30
+
+    for y in range(0, HEIGHT, brick_h):
+
+        offset = (y//brick_h) % 2 * (brick_w//2)
+
+        for x in range(-offset, WIDTH, brick_w):
+
+            rect = pygame.Rect(x,y,brick_w,brick_h)
+
+            pygame.draw.rect(surface,(90,90,90),rect)
+            pygame.draw.rect(surface,(50,50,50),rect,1)
+
+draw_bricks(canvas)
+
+# -----------------------------
+# soft spray brush
+# -----------------------------
+
+def spray(surface,pos,color,size):
+
+    density = size * 12
+
+    for i in range(density):
+
+        angle = random.random()*math.pi*2
+        radius = random.random()*size
+
+        x = int(pos[0] + math.cos(angle)*radius)
+        y = int(pos[1] + math.sin(angle)*radius)
+
+        if 0 < x < WIDTH and 0 < y < HEIGHT:
+
+            alpha = int(200*(1-radius/size))
+            paint = (*color,alpha)
+
+            dot = pygame.Surface((4,4),pygame.SRCALPHA)
+            pygame.draw.circle(dot,paint,(2,2),2)
+
+            surface.blit(dot,(x,y),special_flags=pygame.BLEND_ALPHA_SDL2)
+
+# -----------------------------
+# smooth stroke interpolation
+# -----------------------------
+
+def spray_line(surface,start,end,color,size):
+
+    dx = end[0]-start[0]
+    dy = end[1]-start[1]
+
+    distance = int(math.hypot(dx,dy))
+
+    if distance == 0:
+        return
+
+    for i in range(distance):
+
+        x = int(start[0] + dx*i/distance)
+        y = int(start[1] + dy*i/distance)
+
+        spray(surface,(x,y),color,size)
+
+# -----------------------------
+# game loop
+# -----------------------------
+
+while True:
+
+    for event in pygame.event.get():
+
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            drawing = True
+
+        if event.type == pygame.MOUSEBUTTONUP:
+            drawing = False
+            last_pos = None
+
+        if event.type == pygame.KEYDOWN:
+
+            if event.key == pygame.K_c:
+                canvas.fill((60,60,60))
+                draw_bricks(canvas)
+
+            if event.key == pygame.K_s:
+                pygame.image.save(canvas,"tag.png")
+
+            if event.key == pygame.K_LEFTBRACKET:
+                brush_size = max(4,brush_size-2)
+
+            if event.key == pygame.K_RIGHTBRACKET:
+                brush_size += 2
+
+            if event.key == pygame.K_1:
+                color = (0,255,180)
+
+            if event.key == pygame.K_2:
+                color = (255,100,0)
+
+            if event.key == pygame.K_3:
+                color = (255,60,60)
+
+            if event.key == pygame.K_4:
+                color = (0,200,255)
+
+            if event.key == pygame.K_5:
+                color = (255,255,255)
+
+    if drawing:
+
+        current_pos = pygame.mouse.get_pos()
+
+        if last_pos:
+            spray_line(canvas,last_pos,current_pos,color,brush_size)
+
+        last_pos = current_pos
+
+    screen.blit(canvas,(0,0))
+    pygame.display.flip()
+
+    clock.tick(60)```
